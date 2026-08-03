@@ -1,0 +1,5 @@
+# Caddy auto-provisions and renews a Let's Encrypt certificate for {$DOMAIN}
+# and reverse-proxies to the n8n container. HTTPS just works.
+{$DOMAIN} {
+	reverse_proxy n8n:5678
+}

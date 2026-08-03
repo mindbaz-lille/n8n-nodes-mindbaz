@@ -1,0 +1,64 @@
+{
+  "name": "n8n-nodes-mindbaz",
+  "version": "0.1.0",
+  "description": "n8n community node for Mindbaz - marketing automation & campaign management (subscribers, OneShot mailing, tracking webhooks)",
+  "keywords": [
+    "n8n-community-node-package",
+    "mindbaz",
+    "email"
+  ],
+  "license": "MIT",
+  "homepage": "https://www.mindbaz.com",
+  "author": {
+    "name": "Mindbaz",
+    "email": "dev@mindbaz.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mindbaz-lille/n8n-nodes-mindbaz.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mindbaz-lille/n8n-nodes-mindbaz/issues"
+  },
+  "engines": {
+    "node": ">=20.15"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build": "npx rimraf dist && tsc && gulp build:icons",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "format": "prettier nodes credentials --write",
+    "lint": "eslint nodes credentials package.json",
+    "lintfix": "eslint nodes credentials package.json --fix",
+    "prepublishOnly": "npm run build && npm run lint"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/MindbazApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Mindbaz/Mindbaz.node.js",
+      "dist/nodes/MindbazTrigger/MindbazTrigger.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@typescript-eslint/parser": "^7.15.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-n8n-nodes-base": "^1.16.1",
+    "gulp": "^5.0.0",
+    "jsonc-eslint-parser": "^2.4.2",
+    "prettier": "^3.3.2",
+    "rimraf": "^5.0.7",
+    "typescript": "^5.5.3"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}

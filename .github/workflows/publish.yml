@@ -1,0 +1,42 @@
+name: Publish to npm
+
+# Publishes the package to npm with a provenance statement, as required by
+# n8n community-node verification (mandatory since 2026-05-01).
+#
+# Trigger: create a GitHub Release (recommended), or run manually.
+# Prerequisite: add an npm automation/granular token as the repo secret NPM_TOKEN
+#   (npmjs.com → Access Tokens → Generate → Automation, or Granular with
+#    "read and write" on the package). Provenance needs the id-token permission.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # required for npm provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: npm run lint
+
+      - run: npm test
+
+      - name: Publish with provenance
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
