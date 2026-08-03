@@ -1,6 +1,7 @@
 import type {
 	IDataObject,
 	IExecuteFunctions,
+	IHookFunctions,
 	ILoadOptionsFunctions,
 	IHttpRequestMethods,
 	IHttpRequestOptions,
@@ -15,7 +16,7 @@ export const MINDBAZ_API_BASE = 'https://api.mindbaz.com/api';
  * The `X-API-Key` header is added in the credential's authentication.
  */
 export async function mindbazApiRequest(
-	this: IExecuteFunctions | ILoadOptionsFunctions,
+	this: IExecuteFunctions | ILoadOptionsFunctions | IHookFunctions,
 	method: IHttpRequestMethods,
 	resource: string,
 	body: IDataObject | IDataObject[] | string = {},

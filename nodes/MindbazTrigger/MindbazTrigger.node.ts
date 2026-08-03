@@ -1,19 +1,33 @@
 import type {
+	IDataObject,
+	IHookFunctions,
 	IWebhookFunctions,
 	INodeType,
 	INodeTypeDescription,
 	IWebhookResponseData,
-	IDataObject,
 } from 'n8n-workflow';
 import { NodeConnectionTypes } from 'n8n-workflow';
 
+import { mindbazApiRequest } from '../Mindbaz/GenericFunctions';
+
+// n8n event → Mindbaz `action` code (from the /Webhook API).
+const EVENT_ACTIONS: { [key: string]: string } = {
+	mailOpened: 'TRACKING_OPENING',
+	linkClicked: 'TRACKING_CLICK',
+	newSubscriber: 'SUBSCRIBER_CREATE',
+	editSubscriber: 'SUBSCRIBER_UPDATE',
+	deleteSubscriber: 'SUBSCRIBER_DELETE',
+	unsubSubscriber: 'SUBSCRIBER_UNSUB',
+};
+
+const WEBHOOK_TYPE = 'n8n';
+
 /**
- * Mindbaz Trigger — manual webhook model, one event per node.
+ * Mindbaz Trigger — programmatic webhook registration via the Mindbaz REST API
+ * (`/api/{siteId}/Webhook`), authenticated by the client's API key. No token.
  *
- * Each node instance exposes its own webhook URL. The user registers it in the
- * Mindbaz back office (Webhooks → add a webhook → paste this node's URL, pick
- * the same event, enable). Mindbaz routes one event type per URL, so the node
- * simply outputs whatever it receives. No credential or token required.
+ * On activation the node registers its webhook URL; on deactivation it looks the
+ * hook up by URL in `/Webhook/list` and deletes it by id.
  */
 export class MindbazTrigger implements INodeType {
 	description: INodeTypeDescription = {
@@ -23,13 +37,19 @@ export class MindbazTrigger implements INodeType {
 		group: ['trigger'],
 		version: 1,
 		subtitle: '={{$parameter["event"]}}',
-		description: 'Receives a Mindbaz webhook event (one event per node)',
+		description: 'Starts a workflow when a Mindbaz subscriber or tracking event occurs',
 		defaults: {
 			name: 'Mindbaz Trigger',
 		},
 		usableAsTool: true,
 		inputs: [],
 		outputs: [NodeConnectionTypes.Main],
+		credentials: [
+			{
+				name: 'mindbazApi',
+				required: true,
+			},
+		],
 		webhooks: [
 			{
 				name: 'default',
@@ -44,30 +64,80 @@ export class MindbazTrigger implements INodeType {
 				name: 'event',
 				type: 'options',
 				required: true,
-				default: 'mailOpened',
-				description:
-					'Which Mindbaz event this trigger handles. Register a webhook for this same event in Mindbaz, pointing to this node URL.',
+				default: 'newSubscriber',
+				description: 'Which Mindbaz event triggers this workflow',
 				options: [
-					{ name: 'Bounce', value: 'bounce' },
-					{ name: 'Contact Added', value: 'contactAdded' },
-					{ name: 'Contact Deleted', value: 'contactDeleted' },
-					{ name: 'Contact Updated', value: 'contactUpdated' },
-					{ name: 'Link Clicked', value: 'linkClicked' },
-					{ name: 'List-Unsubscribe', value: 'listUnsubscribe' },
-					{ name: 'Mail Opened', value: 'mailOpened' },
-					{ name: 'Mail Opened (Deliverability)', value: 'mailOpenedDeliverability' },
-					{ name: 'Spam Complaint', value: 'spamComplaint' },
-					{ name: 'Unsubscribe', value: 'unsubscribe' },
+					{
+						name: 'Link Clicked',
+						value: 'linkClicked',
+						description: 'Triggers when a link in a mail is clicked',
+					},
+					{
+						name: 'Mail Opened',
+						value: 'mailOpened',
+						description: 'Triggers when a mail is opened',
+					},
+					{
+						name: 'Subscriber Created',
+						value: 'newSubscriber',
+						description: 'Triggers when a subscriber is added to the database',
+					},
+					{
+						name: 'Subscriber Deleted',
+						value: 'deleteSubscriber',
+						description: 'Triggers when a subscriber is deleted from the database',
+					},
+					{
+						name: 'Subscriber Unsubscribed',
+						value: 'unsubSubscriber',
+						description: 'Triggers when a subscriber unsubscribes from the newsletter',
+					},
+					{
+						name: 'Subscriber Updated',
+						value: 'editSubscriber',
+						description: 'Triggers when a subscriber is updated',
+					},
 				],
 			},
-			{
-				displayName:
-					'Copy the <b>Production URL</b> below. In Mindbaz (Webhooks → add a webhook), create a webhook for the event selected above, paste this URL, and enable it. Your n8n instance must be reachable from the internet for Mindbaz to deliver events.',
-				name: 'setupNotice',
-				type: 'notice',
-				default: '',
-			},
 		],
+	};
+
+	webhookMethods = {
+		default: {
+			async checkExists(this: IHookFunctions): Promise<boolean> {
+				const url = this.getNodeWebhookUrl('default');
+				const response = await mindbazApiRequest.call(this, 'GET', '/Webhook/list');
+				const list = (response.data as IDataObject[]) ?? [];
+				return list.some((webhook) => webhook.url === url);
+			},
+
+			async create(this: IHookFunctions): Promise<boolean> {
+				const url = this.getNodeWebhookUrl('default');
+				const event = this.getNodeParameter('event') as string;
+
+				await mindbazApiRequest.call(this, 'POST', '/Webhook', {
+					action: EVENT_ACTIONS[event],
+					webhookType: WEBHOOK_TYPE,
+					webhookUrl: url,
+					isEnabled: true,
+				});
+				return true;
+			},
+
+			async delete(this: IHookFunctions): Promise<boolean> {
+				const url = this.getNodeWebhookUrl('default');
+				const response = await mindbazApiRequest.call(this, 'GET', '/Webhook/list');
+				const list = (response.data as IDataObject[]) ?? [];
+				const existing = list.find((webhook) => webhook.url === url);
+
+				if (existing === undefined) {
+					return true; // nothing registered for this URL
+				}
+
+				await mindbazApiRequest.call(this, 'DELETE', `/Webhook/${existing.id as number}`);
+				return true;
+			},
+		},
 	};
 
 	async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {

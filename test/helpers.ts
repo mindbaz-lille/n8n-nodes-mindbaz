@@ -59,3 +59,38 @@ export function createExecuteMock(options: ExecuteMockOptions) {
 
 	return { ctx, httpRequestWithAuthentication };
 }
+
+interface HookMockOptions {
+	params?: Record<string, unknown>;
+	credentials?: Record<string, unknown>;
+	webhookUrl?: string;
+	httpImpl?: (options: any) => unknown;
+}
+
+/** Build a mock IHookFunctions for the trigger webhook lifecycle. */
+export function createHookMock(options: HookMockOptions = {}) {
+	const {
+		params = { event: 'newSubscriber' },
+		credentials = { siteId: '42', apiKey: 'secret' },
+		webhookUrl = 'https://n8n.example.com/webhook/abc',
+		httpImpl = () => ({}),
+	} = options;
+
+	const httpRequestWithAuthentication = jest.fn(async function (
+		this: unknown,
+		_name: string,
+		requestOptions: any,
+	) {
+		return httpImpl(requestOptions);
+	});
+
+	const ctx = {
+		getNodeWebhookUrl: jest.fn(() => webhookUrl),
+		getNodeParameter: jest.fn((name: string) => params[name]),
+		getCredentials: jest.fn(async () => credentials),
+		getNode: jest.fn(() => mockNode()),
+		helpers: { httpRequestWithAuthentication },
+	};
+
+	return { ctx, httpRequestWithAuthentication, webhookUrl };
+}
