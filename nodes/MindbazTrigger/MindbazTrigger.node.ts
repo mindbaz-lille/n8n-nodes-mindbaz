@@ -5,15 +5,15 @@ import type {
 	IWebhookResponseData,
 	IDataObject,
 } from 'n8n-workflow';
+import { NodeConnectionTypes } from 'n8n-workflow';
 
 /**
  * Mindbaz Trigger — manual webhook model, one event per node.
  *
- * Each node instance exposes its own webhook URL. The user picks the event
- * here, then registers a matching webhook in the Mindbaz back office
- * (Webhooks → add a webhook → paste this node's URL, choose the same event,
- * enable). Mindbaz routes one event type per URL, so the node simply outputs
- * whatever it receives. No credential or programmatic subscription required.
+ * Each node instance exposes its own webhook URL. The user registers it in the
+ * Mindbaz back office (Webhooks → add a webhook → paste this node's URL, pick
+ * the same event, enable). Mindbaz routes one event type per URL, so the node
+ * simply outputs whatever it receives. No credential or token required.
  */
 export class MindbazTrigger implements INodeType {
 	description: INodeTypeDescription = {
@@ -27,8 +27,9 @@ export class MindbazTrigger implements INodeType {
 		defaults: {
 			name: 'Mindbaz Trigger',
 		},
+		usableAsTool: true,
 		inputs: [],
-		outputs: ['main'],
+		outputs: [NodeConnectionTypes.Main],
 		webhooks: [
 			{
 				name: 'default',
@@ -45,7 +46,7 @@ export class MindbazTrigger implements INodeType {
 				required: true,
 				default: 'mailOpened',
 				description:
-					'Which Mindbaz event this trigger handles. Create a webhook for this same event in Mindbaz, pointing to this node URL.',
+					'Which Mindbaz event this trigger handles. Register a webhook for this same event in Mindbaz, pointing to this node URL.',
 				options: [
 					{ name: 'Bounce', value: 'bounce' },
 					{ name: 'Contact Added', value: 'contactAdded' },

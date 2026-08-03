@@ -7,7 +7,7 @@ import type {
 	INodeTypeDescription,
 	IDataObject,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 import {
 	assertMindbazSuccess,
@@ -36,8 +36,9 @@ export class Mindbaz implements INodeType {
 		defaults: {
 			name: 'Mindbaz',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		usableAsTool: true,
+		inputs: [NodeConnectionTypes.Main],
+		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
 				name: 'mindbazApi',
@@ -124,7 +125,7 @@ export class Mindbaz implements INodeType {
 					});
 					continue;
 				}
-				throw error;
+				throw new NodeOperationError(this.getNode(), error as Error, { itemIndex: i });
 			}
 		}
 

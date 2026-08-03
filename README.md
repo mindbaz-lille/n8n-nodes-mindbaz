@@ -37,13 +37,16 @@ The credential test calls `GET /api/{siteId}/thematics`.
 
 ### Mindbaz Trigger (webhook node)
 
-Receives events that Mindbaz pushes to a webhook URL. Setup mirrors the Make integration — you register the URL manually in Mindbaz. **One event per node**: add a node, pick the event, and each node gets its own URL.
+Starts a workflow when a Mindbaz event occurs. **One event per node**: add a
+node, pick the event, and each node exposes its own webhook URL that you
+register in Mindbaz (same as the Make setup).
 
 1. Add a **Mindbaz Trigger** node and select the **Event** (Mail Opened, Link Clicked, Contact Added, Unsubscribe, Bounce, …).
 2. Activate the workflow (or use the Test URL while listening) and copy the node's **Production URL**.
 3. In the Mindbaz back office → **Webhooks → add a webhook**, paste that URL, choose the **same event**, and enable it.
 
-Add one node per event you want to react to. Mindbaz routes one event type per URL, so each node receives only its event and outputs the raw payload, e.g.:
+Your n8n instance must be reachable from the internet for Mindbaz to deliver the
+events. Each event outputs the raw payload, e.g.:
 
 ```json
 {
@@ -54,8 +57,6 @@ Add one node per event you want to react to. Mindbaz routes one event type per U
   "data": { "event_date": "…", "id_sent": 0, "id_subscriber": 0, "ip": "…", "user_agent": "…", "email": "…" }
 }
 ```
-
-> **Note**: your n8n instance must be reachable from the internet for Mindbaz to deliver events. For local testing, expose it with a public tunnel (see below) and paste the resulting public URL into Mindbaz.
 
 ## Development
 

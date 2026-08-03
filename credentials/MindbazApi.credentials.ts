@@ -2,6 +2,7 @@ import type {
 	IAuthenticateGeneric,
 	ICredentialTestRequest,
 	ICredentialType,
+	Icon,
 	INodeProperties,
 } from 'n8n-workflow';
 
@@ -17,6 +18,8 @@ export class MindbazApi implements ICredentialType {
 	displayName = 'Mindbaz API';
 
 	documentationUrl = 'https://api.mindbaz.com';
+
+	icon: Icon = 'file:mindbaz.svg';
 
 	properties: INodeProperties[] = [
 		{
