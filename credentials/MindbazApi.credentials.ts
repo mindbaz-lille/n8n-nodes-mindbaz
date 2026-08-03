@@ -19,7 +19,7 @@ export class MindbazApi implements ICredentialType {
 
 	documentationUrl = 'https://api.mindbaz.com';
 
-	icon: Icon = 'file:mindbaz.svg';
+	icon: Icon = { light: 'file:mindbaz.svg', dark: 'file:mindbaz.svg' };
 
 	properties: INodeProperties[] = [
 		{

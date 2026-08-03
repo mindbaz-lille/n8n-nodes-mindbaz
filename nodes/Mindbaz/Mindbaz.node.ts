@@ -28,7 +28,7 @@ export class Mindbaz implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Mindbaz',
 		name: 'mindbaz',
-		icon: 'file:mindbaz.svg',
+		icon: { light: 'file:mindbaz.svg', dark: 'file:mindbaz.svg' },
 		group: ['output'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',

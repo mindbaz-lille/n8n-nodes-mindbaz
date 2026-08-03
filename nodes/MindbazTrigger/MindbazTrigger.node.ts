@@ -33,7 +33,7 @@ export class MindbazTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Mindbaz Trigger',
 		name: 'mindbazTrigger',
-		icon: 'file:mindbaz.svg',
+		icon: { light: 'file:mindbaz.svg', dark: 'file:mindbaz.svg' },
 		group: ['trigger'],
 		version: 1,
 		subtitle: '={{$parameter["event"]}}',
