@@ -11,6 +11,11 @@ import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 export const MINDBAZ_API_BASE = 'https://api.mindbaz.com/api';
 
+// Webhook registration goes through the Mindbaz webhook gateway, on the `n8n`
+// integration path, authenticated by the client's API key (no shared token).
+export const MINDBAZ_WEBHOOK_BASE = 'https://webhook.mindbaz.com/wh';
+export const MINDBAZ_WEBHOOK_INTEGRATION = 'n8n';
+
 /**
  * Perform an authenticated request on the Mindbaz REST API.
  * The `X-API-Key` header is added in the credential's authentication.
@@ -38,6 +43,35 @@ export async function mindbazApiRequest(
 	if (method !== 'GET') {
 		options.body = body;
 	}
+
+	try {
+		return await this.helpers.httpRequestWithAuthentication.call(this, 'mindbazApi', options);
+	} catch (error) {
+		throw new NodeApiError(this.getNode(), error as JsonObject);
+	}
+}
+
+/**
+ * Register / unregister a webhook on the Mindbaz gateway (trigger lifecycle),
+ * on the `n8n` integration path. Authenticated by the client's API key.
+ */
+export async function mindbazWebhookRequest(
+	this: IHookFunctions,
+	method: IHttpRequestMethods,
+	body: IDataObject = {},
+): Promise<any> {
+	const credentials = await this.getCredentials('mindbazApi');
+
+	const options: IHttpRequestOptions = {
+		method,
+		url: `${MINDBAZ_WEBHOOK_BASE}/${MINDBAZ_WEBHOOK_INTEGRATION}/${credentials.siteId}`,
+		headers: {
+			'Content-Type': 'application/json',
+			Accept: 'application/json',
+		},
+		json: true,
+		body,
+	};
 
 	try {
 		return await this.helpers.httpRequestWithAuthentication.call(this, 'mindbazApi', options);

@@ -63,6 +63,7 @@ export function createExecuteMock(options: ExecuteMockOptions) {
 interface HookMockOptions {
 	params?: Record<string, unknown>;
 	credentials?: Record<string, unknown>;
+	staticData?: Record<string, unknown>;
 	webhookUrl?: string;
 	httpImpl?: (options: any) => unknown;
 }
@@ -72,6 +73,7 @@ export function createHookMock(options: HookMockOptions = {}) {
 	const {
 		params = { event: 'newSubscriber' },
 		credentials = { siteId: '42', apiKey: 'secret' },
+		staticData = {},
 		webhookUrl = 'https://n8n.example.com/webhook/abc',
 		httpImpl = () => ({}),
 	} = options;
@@ -85,6 +87,7 @@ export function createHookMock(options: HookMockOptions = {}) {
 	});
 
 	const ctx = {
+		getWorkflowStaticData: jest.fn(() => staticData),
 		getNodeWebhookUrl: jest.fn(() => webhookUrl),
 		getNodeParameter: jest.fn((name: string) => params[name]),
 		getCredentials: jest.fn(async () => credentials),
@@ -92,5 +95,5 @@ export function createHookMock(options: HookMockOptions = {}) {
 		helpers: { httpRequestWithAuthentication },
 	};
 
-	return { ctx, httpRequestWithAuthentication, webhookUrl };
+	return { ctx, httpRequestWithAuthentication, staticData };
 }

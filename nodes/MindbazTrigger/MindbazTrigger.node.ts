@@ -8,26 +8,25 @@ import type {
 } from 'n8n-workflow';
 import { NodeConnectionTypes } from 'n8n-workflow';
 
-import { mindbazApiRequest } from '../Mindbaz/GenericFunctions';
+import { mindbazWebhookRequest } from '../Mindbaz/GenericFunctions';
 
-// n8n event → Mindbaz `action` code (from the /Webhook API).
-const EVENT_ACTIONS: { [key: string]: string } = {
-	mailOpened: 'TRACKING_OPENING',
-	linkClicked: 'TRACKING_CLICK',
-	newSubscriber: 'SUBSCRIBER_CREATE',
-	editSubscriber: 'SUBSCRIBER_UPDATE',
-	deleteSubscriber: 'SUBSCRIBER_DELETE',
-	unsubSubscriber: 'SUBSCRIBER_UNSUB',
+// n8n event → Mindbaz (functionality, action) pair.
+const EVENT_MAP: { [key: string]: { functionnality: string; action: string } } = {
+	mailOpened: { functionnality: 'tracking', action: 'opening' },
+	linkClicked: { functionnality: 'tracking', action: 'click' },
+	newSubscriber: { functionnality: 'subscriber', action: 'create' },
+	editSubscriber: { functionnality: 'subscriber', action: 'update' },
+	deleteSubscriber: { functionnality: 'subscriber', action: 'delete' },
+	unsubSubscriber: { functionnality: 'subscriber', action: 'unsub' },
 };
 
-const WEBHOOK_TYPE = 'n8n';
-
 /**
- * Mindbaz Trigger — programmatic webhook registration via the Mindbaz REST API
- * (`/api/{siteId}/Webhook`), authenticated by the client's API key. No token.
+ * Mindbaz Trigger — programmatic webhook registration via the Mindbaz gateway
+ * (`webhook.mindbaz.com/wh/n8n/{siteId}`), authenticated by the client's API
+ * key. No shared token.
  *
- * On activation the node registers its webhook URL; on deactivation it looks the
- * hook up by URL in `/Webhook/list` and deletes it by id.
+ * On activation the node registers its webhook URL and stores the returned hook
+ * id; on deactivation it deletes the hook by that id.
  */
 export class MindbazTrigger implements INodeType {
 	description: INodeTypeDescription = {
@@ -105,36 +104,49 @@ export class MindbazTrigger implements INodeType {
 	webhookMethods = {
 		default: {
 			async checkExists(this: IHookFunctions): Promise<boolean> {
-				const url = this.getNodeWebhookUrl('default');
-				const response = await mindbazApiRequest.call(this, 'GET', '/Webhook/list');
-				const list = (response.data as IDataObject[]) ?? [];
-				return list.some((webhook) => webhook.url === url);
+				const webhookData = this.getWorkflowStaticData('node');
+				return webhookData.hookId !== undefined;
 			},
 
 			async create(this: IHookFunctions): Promise<boolean> {
 				const url = this.getNodeWebhookUrl('default');
 				const event = this.getNodeParameter('event') as string;
+				const { functionnality, action } = EVENT_MAP[event];
 
-				await mindbazApiRequest.call(this, 'POST', '/Webhook', {
-					action: EVENT_ACTIONS[event],
-					webhookType: WEBHOOK_TYPE,
-					webhookUrl: url,
-					isEnabled: true,
+				const response = await mindbazWebhookRequest.call(this, 'POST', {
+					hookUrl: url,
+					action,
+					functionnality,
 				});
+
+				// The gateway returns the created hook (directly or wrapped in an array).
+				const created = Array.isArray(response) ? response[0] : response;
+				const hookId = (created as IDataObject)?.id;
+
+				if (hookId === undefined) {
+					return false;
+				}
+
+				this.getWorkflowStaticData('node').hookId = hookId;
 				return true;
 			},
 
 			async delete(this: IHookFunctions): Promise<boolean> {
-				const url = this.getNodeWebhookUrl('default');
-				const response = await mindbazApiRequest.call(this, 'GET', '/Webhook/list');
-				const list = (response.data as IDataObject[]) ?? [];
-				const existing = list.find((webhook) => webhook.url === url);
+				const webhookData = this.getWorkflowStaticData('node');
 
-				if (existing === undefined) {
-					return true; // nothing registered for this URL
+				if (webhookData.hookId === undefined) {
+					return true;
 				}
 
-				await mindbazApiRequest.call(this, 'DELETE', `/Webhook/${existing.id as number}`);
+				try {
+					await mindbazWebhookRequest.call(this, 'DELETE', {
+						hookId: webhookData.hookId as string | number,
+					});
+				} catch (error) {
+					return false;
+				}
+
+				delete webhookData.hookId;
 				return true;
 			},
 		},

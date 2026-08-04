@@ -2,12 +2,14 @@ import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 import {
 	MINDBAZ_API_BASE,
+	MINDBAZ_WEBHOOK_BASE,
 	assertMindbazSuccess,
 	mindbazApiRequest,
 	mindbazFieldTypeLabel,
+	mindbazWebhookRequest,
 	parseSubscriberFields,
 } from '../nodes/Mindbaz/GenericFunctions';
-import { createExecuteMock } from './helpers';
+import { createExecuteMock, createHookMock } from './helpers';
 
 describe('mindbazApiRequest', () => {
 	it('builds a GET request without a body and returns the response', async () => {
@@ -47,6 +49,45 @@ describe('mindbazApiRequest', () => {
 		await expect(mindbazApiRequest.call(ctx as any, 'GET', '/thematics')).rejects.toBeInstanceOf(
 			NodeApiError,
 		);
+	});
+});
+
+describe('mindbazWebhookRequest', () => {
+	it('targets the n8n api path with the site id and body', async () => {
+		const { ctx, httpRequestWithAuthentication } = createHookMock({
+			httpImpl: () => ({ id: 99 }),
+		});
+
+		const result = await mindbazWebhookRequest.call(ctx as any, 'POST', { hookUrl: 'x' });
+
+		expect(result).toEqual({ id: 99 });
+		const [, opts] = httpRequestWithAuthentication.mock.calls[0];
+		expect(opts.method).toBe('POST');
+		expect(opts.url).toBe(`${MINDBAZ_WEBHOOK_BASE}/n8n/42`);
+		expect(opts.body).toEqual({ hookUrl: 'x' });
+	});
+
+	it('defaults the body to an empty object when none is provided', async () => {
+		const { ctx, httpRequestWithAuthentication } = createHookMock({
+			httpImpl: () => ({ success: true }),
+		});
+
+		await mindbazWebhookRequest.call(ctx as any, 'DELETE');
+
+		const [, opts] = httpRequestWithAuthentication.mock.calls[0];
+		expect(opts.body).toEqual({});
+	});
+
+	it('wraps transport errors in a NodeApiError', async () => {
+		const { ctx } = createHookMock({
+			httpImpl: () => {
+				throw { message: 'down' };
+			},
+		});
+
+		await expect(
+			mindbazWebhookRequest.call(ctx as any, 'DELETE', { hookId: 1 }),
+		).rejects.toBeInstanceOf(NodeApiError);
 	});
 });
 

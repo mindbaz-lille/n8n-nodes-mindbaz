@@ -38,12 +38,17 @@ The credential test calls `GET /api/{siteId}/thematics`.
 ### Mindbaz Trigger (webhook node)
 
 Starts a workflow when a Mindbaz event occurs. Registration is **automatic**: on
-activation the node registers its webhook with Mindbaz via the REST API
-(`/api/{siteId}/Webhook`, authenticated by your API key), and removes it on
-deactivation. No token or manual setup needed.
+activation the node registers its webhook with the Mindbaz gateway
+(`webhook.mindbaz.com/wh/n8n/{siteId}`, authenticated by your API key), and
+removes it on deactivation. No token or manual setup needed.
 
 1. Add a **Mindbaz Trigger** node, select the **Event** (Mail Opened, Link Clicked, Subscriber Created/Updated/Unsubscribed/Deleted) and set the credential.
 2. Activate the workflow — the webhook is registered on Mindbaz automatically.
+
+> **Status**: the trigger registers via the Mindbaz `/Webhook` API using your
+> API key. This requires the Mindbaz webhook API to accept API-key auth (scoped
+> to the key's sites), which is being rolled out. Until then, **actions work but
+> activating a trigger returns an authentication error**.
 
 Your n8n instance must be reachable from the internet for Mindbaz to deliver the
 events. Each event outputs the raw payload, e.g.:
