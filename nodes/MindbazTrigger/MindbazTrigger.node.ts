@@ -40,7 +40,6 @@ export class MindbazTrigger implements INodeType {
 		defaults: {
 			name: 'Mindbaz Trigger',
 		},
-		usableAsTool: true,
 		inputs: [],
 		outputs: [NodeConnectionTypes.Main],
 		credentials: [
@@ -143,6 +142,9 @@ export class MindbazTrigger implements INodeType {
 						hookId: webhookData.hookId as string | number,
 					});
 				} catch (error) {
+					this.logger.error(
+						`Mindbaz webhook deletion failed: ${(error as Error).message}`,
+					);
 					return false;
 				}
 

@@ -92,6 +92,7 @@ export function createHookMock(options: HookMockOptions = {}) {
 		getNodeParameter: jest.fn((name: string) => params[name]),
 		getCredentials: jest.fn(async () => credentials),
 		getNode: jest.fn(() => mockNode()),
+		logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() },
 		helpers: { httpRequestWithAuthentication },
 	};
 
